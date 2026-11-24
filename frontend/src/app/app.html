@@ -1,0 +1,203 @@
+<div class="container py-5" style="max-width: 460px;">
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      <h1 class="h4 text-center mb-3">Парольний захист</h1>
+
+      @if (showChangePassword()) {
+        <div class="alert alert-warning py-2 small mb-3">
+          Ви увійшли з тимчасовим паролем. Встановіть новий пароль або залиште згенерований.
+        </div>
+
+        <form [formGroup]="changeForm" (ngSubmit)="onChangePasswordSubmit()" novalidate>
+          <div class="mb-2">
+            <label for="newPasswordInput" class="form-label fw-semibold d-flex justify-content-between">
+              <span>Новий пароль</span>
+              <span
+                class="small font-mono"
+                [class.text-success]="changeForm.controls.newPassword.value.length >= 15"
+                [class.text-danger]="changeForm.controls.newPassword.value.length > 0 && changeForm.controls.newPassword.value.length < 15"
+                [class.text-muted]="changeForm.controls.newPassword.value.length === 0"
+              >
+                {{ changeForm.controls.newPassword.value.length }} / 15
+              </span>
+            </label>
+            <div class="input-group">
+              <input
+                id="newPasswordInput"
+                [type]="showPassword() ? 'text' : 'password'"
+                class="form-control font-mono"
+                formControlName="newPassword"
+                placeholder="Мінімум 15 символів"
+              />
+              <button type="button" class="btn btn-outline-secondary" (click)="togglePasswordVisibility()">
+                {{ showPassword() ? 'Сховати' : 'Показати' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-1 mb-3 small">
+            <span class="badge" [class.bg-success]="hasUpper(changeForm.controls.newPassword.value)" [class.bg-secondary]="!hasUpper(changeForm.controls.newPassword.value)">A-Z</span>
+            <span class="badge" [class.bg-success]="hasLower(changeForm.controls.newPassword.value)" [class.bg-secondary]="!hasLower(changeForm.controls.newPassword.value)">a-z</span>
+            <span class="badge" [class.bg-success]="hasDigit(changeForm.controls.newPassword.value)" [class.bg-secondary]="!hasDigit(changeForm.controls.newPassword.value)">0-9</span>
+            <span class="badge" [class.bg-success]="hasSpecial(changeForm.controls.newPassword.value)" [class.bg-secondary]="!hasSpecial(changeForm.controls.newPassword.value)">!&#64;#</span>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary" [disabled]="isLoading()">
+              Зберегти новий пароль
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="skipPasswordChange()">
+              Залишити тимчасовий
+            </button>
+          </div>
+        </form>
+      } @else {
+        <div class="btn-group w-100 mb-3" role="group">
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="activeTab() === 'login'"
+            [class.btn-outline-primary]="activeTab() !== 'login'"
+            (click)="setTab('login')"
+          >
+            Вхід
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="activeTab() === 'register'"
+            [class.btn-outline-primary]="activeTab() !== 'register'"
+            (click)="setTab('register')"
+          >
+            Реєстрація
+          </button>
+        </div>
+
+        @if (activeTab() === 'login' && accountStatus(); as status) {
+          @if (status.isLocked) {
+            <div class="alert alert-danger py-2 small mb-3" role="alert">
+              Введення пароля заблоковано ({{ status.failedAttempts }} / {{ status.maxAttempts }} спроб).
+            </div>
+          } @else if (status.failedAttempts > 0) {
+            <div class="alert alert-warning py-2 small mb-3" role="alert">
+              Залишилось спроб: <strong>{{ status.remainingAttempts }}</strong> з {{ status.maxAttempts }}
+              @if (waitSeconds() > 0) {
+                <span class="ms-2">(пауза {{ waitSeconds() }} с)</span>
+              }
+            </div>
+          }
+        }
+
+        @if (temporaryPassword(); as tempPwd) {
+          <div class="alert alert-info py-2 small mb-3">
+            <div class="mb-1">Тимчасовий пароль:</div>
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <code class="fw-bold text-dark fs-6">{{ tempPwd }}</code>
+              <button type="button" class="btn btn-sm btn-outline-dark" (click)="copyTempPassword()">
+                {{ copiedTemp() ? 'Скопійовано' : 'Копіювати' }}
+              </button>
+            </div>
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="mb-3">
+            <label for="usernameInput" class="form-label fw-semibold">Логін</label>
+            <input
+              id="usernameInput"
+              type="text"
+              class="form-control"
+              formControlName="username"
+              (blur)="onUsernameBlur()"
+              placeholder="Введіть логін"
+            />
+          </div>
+
+          <div class="mb-2">
+            <label for="passwordInput" class="form-label fw-semibold d-flex justify-content-between">
+              <span>Пароль</span>
+              <span
+                class="small font-mono"
+                [class.text-success]="form.controls.password.value.length >= 15"
+                [class.text-danger]="form.controls.password.value.length > 0 && form.controls.password.value.length < 15"
+                [class.text-muted]="form.controls.password.value.length === 0"
+              >
+                {{ form.controls.password.value.length }} / 15
+              </span>
+            </label>
+            <div class="input-group">
+              <input
+                id="passwordInput"
+                [type]="showPassword() ? 'text' : 'password'"
+                class="form-control font-mono"
+                formControlName="password"
+                [attr.disabled]="activeTab() === 'login' && isLocked() ? '' : null"
+                placeholder="Мінімум 15 символів"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="togglePasswordVisibility()"
+              >
+                {{ showPassword() ? 'Сховати' : 'Показати' }}
+              </button>
+            </div>
+          </div>
+
+          @if (activeTab() === 'register') {
+            <div class="d-flex flex-wrap gap-1 mb-3 small">
+              <span class="badge" [class.bg-success]="hasUpper(form.controls.password.value)" [class.bg-secondary]="!hasUpper(form.controls.password.value)">A-Z</span>
+              <span class="badge" [class.bg-success]="hasLower(form.controls.password.value)" [class.bg-secondary]="!hasLower(form.controls.password.value)">a-z</span>
+              <span class="badge" [class.bg-success]="hasDigit(form.controls.password.value)" [class.bg-secondary]="!hasDigit(form.controls.password.value)">0-9</span>
+              <span class="badge" [class.bg-success]="hasSpecial(form.controls.password.value)" [class.bg-secondary]="!hasSpecial(form.controls.password.value)">!&#64;#</span>
+            </div>
+          } @else {
+            <div class="mb-3"></div>
+          }
+
+          <div class="d-grid gap-2">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="isLoading() || (activeTab() === 'login' && (isLocked() || waitSeconds() > 0))"
+            >
+              @if (activeTab() === 'login') {
+                {{ waitSeconds() > 0 ? 'Зачекайте (' + waitSeconds() + ' с)' : 'Увійти' }}
+              } @else {
+                Зареєструватися
+              }
+            </button>
+
+            @if (activeTab() === 'login' && canReset()) {
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                [disabled]="isLoading()"
+                (click)="onReset()"
+              >
+                Скинути спроби
+              </button>
+            }
+          </div>
+        </form>
+      }
+
+      @if (networkError()) {
+        <div class="alert alert-danger py-2 small mt-3 mb-0" role="alert">
+          {{ networkError() }}
+        </div>
+      }
+
+      @if (lastResponse(); as res) {
+        <div
+          class="alert py-2 small mt-3 mb-0"
+          [class.alert-success]="res.succeeded"
+          [class.alert-danger]="!res.succeeded"
+          role="alert"
+        >
+          {{ res.message }}
+        </div>
+      }
+    </div>
+  </div>
+</div>
