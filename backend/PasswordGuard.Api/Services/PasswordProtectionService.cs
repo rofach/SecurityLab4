@@ -73,10 +73,21 @@ public sealed class PasswordProtectionService(IUserStore userStore) : IPasswordP
         UserAccount? account = userStore.GetByUsername(username);
         if (account is null)
         {
+            if (password.Length < MinLength)
+            {
+                return new AuthOperationResponse(
+                    false,
+                    StatusCodes.Status400BadRequest,
+                    $"Пароль закороткий (мін. {MinLength} символів).",
+                    null,
+                    0,
+                    null);
+            }
+
             return new AuthOperationResponse(
                 false,
-                StatusCodes.Status404NotFound,
-                $"Користувача «{username}» не знайдено.",
+                StatusCodes.Status401Unauthorized,
+                "Невірний логін або пароль.",
                 null,
                 0,
                 null);
@@ -111,13 +122,9 @@ public sealed class PasswordProtectionService(IUserStore userStore) : IPasswordP
             if (password.Length < MinLength)
             {
                 int delay = RegisterFailure(account);
-                int remaining = MaxAttempts - account.FailedAttempts;
-
                 string msg = account.IsLocked
                     ? $"Пароль закороткий (мін. {MinLength} символів). Вичерпано {MaxAttempts} спроб — введення заблоковано."
-                    : delay > 0
-                        ? $"Пароль закороткий (мін. {MinLength} символів). Залишилось спроб: {remaining} з {MaxAttempts}. Пауза {delay} с."
-                        : $"Пароль закороткий (мін. {MinLength} символів). Залишилось спроб: {remaining} з {MaxAttempts}.";
+                    : $"Пароль закороткий (мін. {MinLength} символів).";
 
                 return new AuthOperationResponse(
                     false,
@@ -148,13 +155,9 @@ public sealed class PasswordProtectionService(IUserStore userStore) : IPasswordP
             }
 
             int failDelay = RegisterFailure(account);
-            int left = MaxAttempts - account.FailedAttempts;
-
             string failMsg = account.IsLocked
-                ? $"Невірний пароль. Вичерпано {MaxAttempts} спроб — введення заблоковано."
-                : failDelay > 0
-                    ? $"Невірний пароль. Залишилось спроб: {left} з {MaxAttempts}. Пауза {failDelay} с."
-                    : $"Невірний пароль. Залишилось спроб: {left} з {MaxAttempts}.";
+                ? $"Невірний логін або пароль. Вичерпано {MaxAttempts} спроб — введення заблоковано."
+                : "Невірний логін або пароль.";
 
             return new AuthOperationResponse(
                 false,
@@ -177,8 +180,8 @@ public sealed class PasswordProtectionService(IUserStore userStore) : IPasswordP
         {
             return new AuthOperationResponse(
                 false,
-                StatusCodes.Status404NotFound,
-                $"Користувача «{username}» не знайдено.",
+                StatusCodes.Status401Unauthorized,
+                "Невірний логін або пароль.",
                 null,
                 0,
                 null);
@@ -246,8 +249,8 @@ public sealed class PasswordProtectionService(IUserStore userStore) : IPasswordP
         {
             return new AuthOperationResponse(
                 false,
-                StatusCodes.Status404NotFound,
-                $"Користувача «{username}» не знайдено.",
+                StatusCodes.Status401Unauthorized,
+                "Невірний логін або пароль.",
                 null,
                 0,
                 null);

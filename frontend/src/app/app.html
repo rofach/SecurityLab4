@@ -5,7 +5,7 @@
 
       @if (showChangePassword()) {
         <div class="alert alert-warning py-2 small mb-3">
-          Ви увійшли з тимчасовим паролем. Встановіть новий пароль або залиште згенерований.
+          Ви увійшли з тимчасовим паролем. Встановіть новий пароль.
         </div>
 
         <form [formGroup]="changeForm" (ngSubmit)="onChangePasswordSubmit()" novalidate>
